@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mundo Micótico Ancestral - A-Frame VR</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script>
+        // Componente para el crecimiento gradual de las hifas y sonido
+        AFRAME.registerComponent('hifa-crecimiento', {
+            schema: {
+                velocidad: {type: 'number', default: 0.005},
+                maxEscala: {type: 'number', default: 0.1},
+                sonidoSrc: {type: 'string', default: 'https://cdn.glitch.global/c3b0f3e0-6a7e-4b4e-9b0d-9b6d8b2d1d0f/rustle.mp3?v=1700000000000'} // Sonido de crecimiento suave
+            },
+            init: function () {
+                this.escalaActual = 0.001;
+                this.el.setAttribute('scale', {x: this.escalaActual, y: this.escalaActual, z: this.escalaActual});
+                this.sonido = new Audio(this.data.sonidoSrc);
+                this.sonido.loop = false;
+                this.sonido.volume = 0.3;
+            },
+            tick: function (time, deltaTime) {
+                if (this.escalaActual < this.data.maxEscala) {
+                    this.escalaActual += this.data.velocidad * (deltaTime / 1000); // Incremento por segundo
+                    this.el.setAttribute('scale', {x: this.escalaActual, y: this.escalaActual, z: this.escalaActual});
+                    if (!this.sonidoReproduciendose && this.escalaActual > this.data.maxEscala / 4) { // Reproducir sonido a cierto punto de crecimiento
+                        this.sonido.play();
+                        this.sonidoReproduciendose = true;
+                    }
+                } else if (this.sonidoReproduciendose) {
+                    this.sonido.pause();
+                    this.sonidoReproduciendose = false;
+                }
+            }
+        });
+
+        // Componente para el texto explicativo y su aparición
+        AFRAME.registerComponent('explicacion-narrativa', {
+            init: function () {
+                const el = this.el;
+                const dialogo = [
+                    "¡Bienvenido, explorador del Micelio!",
+                    "Aquí, en las profundidades de este bosque antiguo, comenzaremos un viaje a través del tiempo micótico...",
+                    "Los primeros rastros fósiles de hongos datan de hace 1.300 millones de años, mucho antes que las plantas, colonizando la Tierra como pioneros.",
+                    "Imagina un mundo donde las hifas, filamentos invisibles al ojo, formaban redes subterráneas, preparando el terreno para la vida que conocemos.",
+                    "Ellos fueron los arquitectos silenciosos de los ecosistemas, descomponiendo y reciclando, sentando las bases de la fertilidad del suelo.",
+                    "Observa a tu alrededor: las hifas crecen, tejen el mundo. Escucha su suave expansión, la sinfonía de la vida que se abre paso.",
+                    "Y mira cómo el agua fluye. No son raíces, sino venas de cristal líquido, transportando nutrientes, como las hifas transportan el alimento.",
+                    "La magia radica en la simbiosis. Sin los hongos, las primeras plantas no habrían podido colonizar la tierra. Los hongos les ofrecían agua y minerales...",
+                    "...a cambio de azúcares producidos por la fotosíntesis. Una danza perfecta, una alianza que cambió el destino de nuestro planeta.",
+                    "Este equilibrio, esta interdependencia, es la base de cada ecosistema. Cada hongo que ves es una pieza clave de una red invisible pero poderosa.",
+                    "Ahora, explora. Camina entre las formas y escucha los susurros de este mundo. Sumérgete en la vasta red del micelio."
+                ];
+                let indiceDialogo = 0;
+                const textoEntidad = document.createElement('a-text');
+                textoEntidad.setAttribute('value', dialogo[0]);
+                textoEntidad.setAttribute('width', '3');
+                textoEntidad.setAttribute('position', '0 1.6 -3');
+                textoEntidad.setAttribute('align', 'center');
+                textoEntidad.setAttribute('color', '#FFFFFF');
+                textoEntidad.setAttribute('shader', 'msdf'); // Para mejor calidad de texto
+                textoEntidad.setAttribute('font', 'https://raw.githubusercontent.com/etiennepinchon/aframe-msdf-text-component/master/assets/DejaVu-sdf.json');
+                el.appendChild(textoEntidad);
+
+                // Función para avanzar el diálogo
+                const avanzarDialogo = () => {
+                    indiceDialogo++;
+                    if (indiceDialogo < dialogo.length) {
+                        textoEntidad.setAttribute('value', dialogo[indiceDialogo]);
+                    } else {
+                        textoEntidad.remove(); // Ocultar el texto al finalizar
+                    }
+                };
+
+                // Crear un botón invisible para avanzar el diálogo
+                const botonAvance = document.createElement('a-box');
+                botonAvance.setAttribute('position', '0 1.5 -2.9');
+                botonAvance.setAttribute('width', '2.5');
+                botonAvance.setAttribute('height', '1');
+                botonAvance.setAttribute('depth', '0.1');
+                botonAvance.setAttribute('opacity', '0.001'); // Hacerlo casi invisible
+                botonAvance.setAttribute('color', 'red'); // Para depuración, luego quitar
+                botonAvance.setAttribute('class', 'clickable'); // Clase para interacción
+                el.appendChild(botonAvance);
+
+                botonAvance.addEventListener('click', avanzarDialogo);
+
+                // Opcional: Auto-avance del diálogo
+                /*
+                setInterval(() => {
+                    avanzarDialogo();
+                }, 10000); // Cada 10 segundos
+                */
+            }
+        });
+    </script>
+</head>
+<body>
+    <a-scene background="color: #221133" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+
+        <a-entity id="rig" movement-controls="speed: 0.1" position="0 0 0">
+            <a-entity camera look-controls="pointerLockEnabled: true" position="0 1.6 0"></a-entity>
+            <a-entity laser-controls="hand: right" raycaster="objects: .teleport-target; far: 10" line="color: #FFFFFF; opacity: 0.5"></a-entity>
+            <a-entity laser-controls="hand: left" raycaster="objects: .teleport-target; far: 10" line="color: #FFFFFF; opacity: 0.5"></a-entity>
+        </a-entity>
+
+        <a-entity explicacion-narrativa></a-entity>
+
+        <a-plane position="0 -0.01 0" rotation="-90 0 0" width="50" height="50" color="#554466"></a-plane>
+
+        <a-entity id="hifas-container">
+            <a-cylinder hifa-crecimiento position="-2 0.05 -1.5" radius="0.01" height="0.5" color="#AA88CC" rotation="0 45 0"></a-cylinder>
+            <a-cylinder hifa-crecimiento position="1.5 0.03 2" radius="0.01" height="0.4" color="#AA88CC" rotation="0 -30 0"></a-cylinder>
+            <a-cylinder hifa-crecimiento position="0.5 0.08 -2.5" radius="0.01" height="0.6" color="#AA88CC" rotation="0 90 0"></a-cylinder>
+            <a-cylinder hifa-crecimiento position="-3 0.06 0.5" radius="0.01" height="0.3" color="#AA88CC" rotation="0 15 0"></a-cylinder>
+            </a-entity>
+
+        <a-entity id="hongos-container">
+            <a-entity position="-4 0 0">
+                <a-sphere hifa-crecimiento="maxEscala: 0.8; velocidad: 0.001; sonidoSrc: https://cdn.glitch.global/c3b0f3e0-6a7e-4b4e-9b0d-9b6d8b2d1d0f/pop.mp3?v=1700000000000" radius="0.05" color="#FF5555" position="0 0.4 0"></a-sphere>
+                <a-cylinder hifa-crecimiento="maxEscala: 0.4; velocidad: 0.001" radius="0.05" height="0.8" color="#FFBBBB" position="0 0.2 0"></a-cylinder>
+            </a-entity>
+            <a-entity position="3 0 -3">
+                <a-sphere hifa-crecimiento="maxEscala: 0.6; velocidad: 0.0015; sonidoSrc: https://cdn.glitch.global/c3b0f3e0-6a7e-4b4e-9b0d-9b6d8b2d1d0f/pop.mp3?v=1700000000000" radius="0.08" color="#88FF88" position="0 0.6 0"></a-sphere>
+                <a-cylinder hifa-crecimiento="maxEscala: 0.5; velocidad: 0.0015" radius="0.07" height="1.2" color="#BBFFBB" position="0 0.3 0"></a-cylinder>
+            </a-entity>
+            </a-entity>
+
+        <a-entity id="rios-agua">
+            <a-cylinder position="0.0 0.01 -2.0" radius="0.08" height="10" rotation="90 0 0" material="src: url(https://cdn.glitch.global/c3b0f3e0-6a7e-4b4e-9b0d-9b6d8b2d1d0f/water_flow.gif?v=1700000000000); repeat: 1 5; transparent: true; opacity: 0.7; roughness: 0.2; metalness: 0.8"></a-cylinder>
+            <a-cylinder position="-2.5 0.01 0.0" radius="0.06" height="8" rotation="90 90 0" material="src: url(https://cdn.glitch.global/c3b0f3e0-6a7e-4b4e-9b0d-9b6d8b2d1d0f/water_flow.gif?v=1700000000000); repeat: 1 4; transparent: true; opacity: 0.7; roughness: 0.2; metalness: 0.8"></a-cylinder>
+            </a-entity>
+
+        <a-entity light="type: ambient; color: #BBBBBB; intensity: 0.4"></a-entity>
+        <a-entity light="type: directional; color: #FFFFFF; intensity: 0.6; position: 1 2 1"></a-entity>
+
+        <a-sound src="https://cdn.glitch.global/c3b0f3e0-6a7e-4b4e-9b0d-9b6d8b2d1d0f/forest_ambience.mp3?v=1700000000000" autoplay="true" loop="true" volume="0.2"></a-sound>
+
+    </a-scene>
+</body>
+</html>
